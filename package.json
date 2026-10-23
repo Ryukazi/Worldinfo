@@ -1,0 +1,12 @@
+{
+  "name": "worldscope",
+  "version": "1.0.0",
+  "description": "WorldScope — Explore Every Country (PWA + Android wrapper)",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.js",
+    "dev": "node scripts/build.js && npx serve dist"
+  },
+  "engines": { "node": ">=18" },
+  "author": "Lord Denish (Ryukazi)"
+}

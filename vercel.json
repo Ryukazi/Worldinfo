@@ -1,0 +1,8 @@
+{
+  "buildCommand": "npm run build",
+  "outputDirectory": "dist",
+  "rewrites": [{ "source": "/((?!api/|.*\\..*).*)", "destination": "/index.html" }],
+  "headers": [
+    { "source": "/service-worker.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}
