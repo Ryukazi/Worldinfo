@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>WorldScope — Explore Every Country</title>
+<meta name="description" content="Explore every country: live weather, local time, currency conversion, maps and comparisons.">
+<meta name="theme-color" content="#020817">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/icons/favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/src/styles.css">
+</head>
+<body>
+<div id="splash"><div class="orb"></div><p>WorldScope</p></div>
+<div id="offline" hidden>You’re offline — showing saved data. Live weather and exchange rates are unavailable.</div>
+<div id="app"></div>
+<noscript><p style="padding:24px;color:#fff">WorldScope needs JavaScript.</p></noscript>
+<script src="/src/services/country-service.js"></script>
+<script src="/src/app.js"></script>
+</body>
+</html>
