@@ -63,13 +63,34 @@ async function loadDir() {
   if (cached && Date.now() - cached.t < 6048e5) S.dir = cached.d;
   else {
     try {
-      const r = await fetchJSON('https://restcountries.com/v3.1/all?fields=name,cca2,cca3,capital,region,flags,currencies,population,latlng,timezones', 20000);
-      S.dir = r.filter(c => c.cca2 && c.latlng && c.latlng.length === 2).map(c => ({
-        name: c.name.common, cca2: c.cca2, cca3: c.cca3, capital: (c.capital || [])[0] || '', region: c.region || '',
-        flag: c.flags && c.flags.png, pop: c.population, ll: c.latlng, tz: c.timezones || [],
-        cur: Object.entries(c.currencies || {}).map(([code, v]) => ({ code, name: v.name, symbol: v.symbol }))
-      })).sort((a, b) => a.name.localeCompare(b.name));
-      store.set('dir', { t: Date.now(), d: S.dir });
+      let r, sourceError;
+      try {
+        r = await fetchJSON('https://restcountries.com/v3.1/all?fields=name,cca2,cca3,capital,region,flags,currencies,population,latlng,timezones', 20000);
+      } catch (e) {
+        sourceError = e;
+        // Secondary public source for networks where REST Countries is blocked or unavailable.
+        try {
+          const raw = await fetchJSON('https://raw.githubusercontent.com/mledoze/countries/master/countries.json', 20000);
+          r = raw.map(c => ({
+            name: { common: c.name && (c.name.common || c.name) }, cca2: c.cca2, cca3: c.cca3,
+            capital: Array.isArray(c.capital) ? c.capital : (c.capital ? [c.capital] : []), region: c.region,
+            flags: { png: c.flags && (c.flags.png || c.flags.svg) }, population: c.population,
+            latlng: c.latlng, timezones: c.timezones, currencies: c.currencies
+          }));
+        } catch (fallbackError) {
+          if (cached) { S.dir = cached.d; }
+          else throw new Error('Unable to load the country directory. Check your internet connection and try again.');
+        }
+      }
+      if (!S.dir.length) {
+        S.dir = r.filter(c => c.cca2 && c.latlng && c.latlng.length === 2 && c.name && c.name.common).map(c => ({
+          name: c.name.common, cca2: c.cca2, cca3: c.cca3, capital: (c.capital || [])[0] || '', region: c.region || '',
+          flag: c.flags && (c.flags.png || c.flags.svg), pop: c.population, ll: c.latlng, tz: c.timezones || [],
+          cur: Object.entries(c.currencies || {}).map(([code, v]) => ({ code, name: v.name, symbol: v.symbol }))
+        })).sort((a, b) => a.name.localeCompare(b.name));
+        if (!S.dir.length) throw sourceError || new Error('Country directory returned no countries.');
+        store.set('dir', { t: Date.now(), d: S.dir });
+      }
     } catch (e) { if (cached) S.dir = cached.d; else throw e; }
   }
   S.dir.forEach(c => { S.byCode[c.cca2] = c; c._s = [c.name, c.capital, c.region, c.cca2, c.cca3, ...c.cur.flatMap(x => [x.code, x.name])].join(' ').toLowerCase(); });
@@ -480,7 +501,7 @@ function buildShell() {
   const moreMenu = h('div', { class: 'more nav', hidden: true }, NAV.filter(n => ['currency', 'compare', 'map', 'settings', 'about'].includes(n[0])).map(link));
   moreMenu.addEventListener('click', () => moreMenu.hidden = true);
   const bn = ['', 'explore', 'weather', 'favorites'].map(k => NAV.find(n => n[0] === k)).map(([k, t, i]) => h('a', { href: '#/' + k, 'data-nav': k }, h('span', null, i), t));
-  const main = h('main', { class: 'main' }, h('div', { class: 'top' }, brand(), h('div', { class: 'hsearch' }, searchBox(c => { location.hash = '#/country/' + c.cca2; })), h('button', { class: 'btn ghost sbtn', 'aria-label': 'Search', onclick: openSearchOverlay }, '🔍'), h('span', { id: 'inst' })), h('div', { id: 'view' }));
+  const main = h('main', { class: 'main' }, h('div', { class: 'top' }, brand(), h('div', { class: 'hsearch' }, searchBox(c => { location.hash = '#/country/' + c.cca2; })), h('button', { class: 'btn ghost sbtn', 'aria-label': 'Search countries', onclick: openSearchOverlay }, 'Search'), h('span', { id: 'inst' })), h('div', { id: 'view' }));
   $('#app').replaceChildren(h('div', { class: 'shell' }, h('aside', { class: 'side' }, brand(), h('nav', { class: 'nav' }, NAV.slice(0, 8).map(link)), h('div', { class: 'foot' }, h('a', { href: '#/about' }, 'About'), h('p', null, 'by Lord Denish · Ryukazi'))), main),
     h('nav', { class: 'bnav' }, bn, h('button', { 'aria-label': 'More', onclick: () => moreMenu.hidden = !moreMenu.hidden }, h('span', null, '☰'), 'More')), moreMenu);
 }
@@ -498,7 +519,7 @@ async function start() {
   document.body.classList.toggle('nofx', !S.set.fx);
   buildShell();
   try { await loadDir(); } catch (e) {
-    $('#view').replaceChildren(h('div', { class: 'card' }, h('h2', null, 'Country list unavailable'), h('p', { class: 'err' }, errMsg(e)), h('button', { class: 'btn', onclick: () => location.reload() }, 'Retry')));
+    $('#view').replaceChildren(h('div', { class: 'card' }, h('h2', null, 'Unable to load countries'), h('p', { class: 'err' }, errMsg(e)), h('button', { class: 'btn', onclick: () => location.reload() }, 'Retry')));
     const sp = $('#splash'); if (sp) sp.remove(); return;
   }
   addEventListener('hashchange', render); render();
